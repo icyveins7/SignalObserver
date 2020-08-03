@@ -57,6 +57,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Sampling Rate</string>
             </property>
@@ -67,6 +73,15 @@
           </item>
           <item>
            <widget class="QLineEdit" name="fsEdit">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
             <property name="text">
              <string>2000000</string>
             </property>
@@ -77,6 +92,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_3">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Number of Channeliser Filter Taps</string>
             </property>
@@ -87,6 +108,18 @@
           </item>
           <item>
            <widget class="QLineEdit" name="numTapsEdit">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="text">
+             <string>20000</string>
+            </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
             </property>
@@ -94,6 +127,12 @@
           </item>
           <item>
            <widget class="QLabel" name="label_2">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Channelised Bandwidth</string>
             </property>
@@ -104,6 +143,18 @@
           </item>
           <item>
            <widget class="QLineEdit" name="chnBWEdit">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="text">
+             <string>5000</string>
+            </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
             </property>
@@ -111,6 +162,12 @@
           </item>
           <item>
            <widget class="QLabel" name="chnlNumberLabel">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
             <property name="text">
              <string>Channel Number</string>
             </property>
@@ -121,12 +178,37 @@
           </item>
           <item>
            <widget class="QLineEdit" name="chnlIdxEdit">
+            <property name="maximumSize">
+             <size>
+              <width>200</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="layoutDirection">
+             <enum>Qt::LeftToRight</enum>
+            </property>
+            <property name="text">
+             <string>568</string>
+            </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
          </layout>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </item>

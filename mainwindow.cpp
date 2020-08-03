@@ -57,7 +57,10 @@ void MainWindow::on_startBtn_clicked()
 {
     // init the processor
     if (processor == nullptr){
-        processor = new Processor(ui->fsEdit->text().toInt());
+        processor = new Processor(ui->fsEdit->text().toInt(),
+                                  ui->chnBWEdit->text().toInt(),
+                                  ui->numTapsEdit->text().toInt(),
+                                  ui->chnlIdxEdit->text().toInt());
     }
     else{
         qDebug()<<"processor already initialised";
@@ -72,13 +75,16 @@ void MainWindow::on_startBtn_clicked()
 
     int retcode = processor->LoadRawFiles_int16(filepaths);
     qDebug() << retcode;
+
+    // run the channeliser
+    processor->ChanneliseStart();
 }
 
 void MainWindow::on_selectFilesBtn_clicked()
 {
 
     QStringList filenames = QFileDialog::getOpenFileNames(this,
-        tr("Open Raw Files"), "C:\\", tr("Binary Files (*.bin *.dat)"));
+        tr("Open Raw Files"), "D:\\SignalObserver", tr("Binary Files (*.bin *.dat)"));
 
     // clear the list
     ui->filesList->clear();
