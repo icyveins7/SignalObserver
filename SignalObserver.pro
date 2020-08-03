@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui charts
+QT       += core gui
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -39,7 +39,7 @@ qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
 
-win32: LIBS += -LC:/Qwt-6.1.5/lib/ -lqwt
+win32: LIBS += -LD:/Qwt-6.1.5/lib/ -lqwt
 
-INCLUDEPATH += C:/Qwt-6.1.5/include
-DEPENDPATH += C:/Qwt-6.1.5/include
+INCLUDEPATH += D:/Qwt-6.1.5/include
+DEPENDPATH += D:/Qwt-6.1.5/include

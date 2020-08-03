@@ -2,7 +2,6 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QtCharts>
 #include <qwt_plot.h>
 #include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
@@ -19,8 +18,6 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
-    void samplePlot();
 
     void sampleQwtPlot();
 
