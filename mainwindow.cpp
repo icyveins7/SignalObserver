@@ -7,12 +7,17 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-//    samplePlot();
     sampleQwtPlot();
+
+    // initialise to null?
+    processor = nullptr;
 }
 
 MainWindow::~MainWindow()
 {
+    // clear the processor?
+//    delete processor;
+
     delete ui;
 }
 
@@ -46,4 +51,38 @@ void MainWindow::sampleQwtPlot(){
         p->replot();
 
     }
+}
+
+void MainWindow::on_startBtn_clicked()
+{
+    // init the processor
+    if (processor == nullptr){
+        processor = new Processor(ui->fsEdit->text().toInt());
+    }
+    else{
+        qDebug()<<"processor already initialised";
+    }
+
+    // open the rawfiles
+    QStringList filepaths;
+    for (int i = 0; i < ui->filesList->count(); i++){
+        filepaths.append(ui->filesList->item(i)->text());
+    }
+    qDebug()<<"Loading raw files" << filepaths;
+
+    int retcode = processor->LoadRawFiles_int16(filepaths);
+    qDebug() << retcode;
+}
+
+void MainWindow::on_selectFilesBtn_clicked()
+{
+
+    QStringList filenames = QFileDialog::getOpenFileNames(this,
+        tr("Open Raw Files"), "C:\\", tr("Binary Files (*.bin *.dat)"));
+
+    // clear the list
+    ui->filesList->clear();
+
+    // append to the list
+    ui->filesList->addItems(filenames);
 }

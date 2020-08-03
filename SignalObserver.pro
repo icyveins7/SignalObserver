@@ -26,10 +26,12 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp
+        mainwindow.cpp \
+    processor.cpp
 
 HEADERS += \
-        mainwindow.h
+        mainwindow.h \
+    processor.h
 
 FORMS += \
         mainwindow.ui
@@ -43,3 +45,8 @@ win32: LIBS += -LD:/Qwt-6.1.5/lib/ -lqwt
 
 INCLUDEPATH += D:/Qwt-6.1.5/include
 DEPENDPATH += D:/Qwt-6.1.5/include
+
+win32: LIBS += -LG:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/lib/intel64_win/ -lippcore -lipps
+
+INCLUDEPATH += G:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/include
+DEPENDPATH += G:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/include

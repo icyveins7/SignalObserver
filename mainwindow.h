@@ -6,6 +6,9 @@
 #include <qwt_plot_curve.h>
 #include <qwt_series_data.h>
 #include <qwt_plot_zoomer.h>
+#include "processor.h"
+#include <QFileDialog>
+#include <QDebug>
 
 namespace Ui {
 class MainWindow;
@@ -21,10 +24,17 @@ public:
 
     void sampleQwtPlot();
 
+private slots:
+    void on_startBtn_clicked();
+
+    void on_selectFilesBtn_clicked();
+
 private:
     Ui::MainWindow *ui;
 
     QVector<double> data;
+
+    Processor *processor;
 };
 
 #endif // MAINWINDOW_H
