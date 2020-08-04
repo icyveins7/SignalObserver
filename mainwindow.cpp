@@ -104,19 +104,10 @@ void MainWindow::on_actionOptions_triggered()
 {
     qDebug()<<"in options";
 
-    QDialog *d = new QDialog();
-    QFormLayout *layout = new QFormLayout();
-
-
-    QDialogButtonBox *b = new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel, d);
-
-//    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-//    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-
+    MyDialog *d = new MyDialog();
 
     QVector<QString> curroptlabels;
     QVector<int> curropts;
-
 
     // populate current options
     processor->getOptions(curroptlabels, curropts);
@@ -125,15 +116,12 @@ void MainWindow::on_actionOptions_triggered()
     qDebug()<<curropts;
 
     for (int i = 0; i < curroptlabels.size(); i++){
-        QLineEdit *e = new QLineEdit(QString::number(curropts.at(i)));
-        layout->addRow(curroptlabels.at(i), e);
+        d->addFormRow(curroptlabels.at(i), QString::number(curropts.at(i)));
     }
 
 
-    QVBoxLayout *mainlayout = new QVBoxLayout();
-    d->setLayout(mainlayout);
-    mainlayout->addLayout(layout);
-    mainlayout->addWidget(b);
+    // connect the slot
+    connect(d, SIGNAL(dialogFormParams(QVector<int>)), processor, SLOT(setOptions(QVector<int>)));
 
     d->exec();
 }

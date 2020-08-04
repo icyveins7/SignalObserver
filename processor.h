@@ -44,6 +44,10 @@ public:
     // options extraction
     void getOptions(QVector<QString> &optlabels, QVector<int> &opts);
 
+public slots:
+    // options setting
+    void setOptions(QVector<int> opts);
+
 signals:
     void ChanneliserFinished();
 

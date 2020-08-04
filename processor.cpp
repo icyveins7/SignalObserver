@@ -175,14 +175,14 @@ int Processor::ChanneliseStart(){
 
     qDebug()<<"Wola threads finished\n";
 
-    // check some data?
-    for (int c = 0; c < 10; c++){
-        printf("%f, %f\n", out[c*N].re, out[c*N].im);
-    }
+//    // check some data?
+//    for (int c = 0; c < 10; c++){
+//        printf("%f, %f\n", out[c*N].re, out[c*N].im);
+//    }
 
-    for (int c = 0; c < 10; c++){
-        printf("%f, %f\n", out[c*N + chnlIdx].re, out[c*N + chnlIdx].im);
-    }
+//    for (int c = 0; c < 10; c++){
+//        printf("%f, %f\n", out[c*N + chnlIdx].re, out[c*N + chnlIdx].im);
+//    }
 
     // === FINAL CLEANUP ===
     for (t=0; t<NUM_THREADS; t++){
@@ -245,5 +245,10 @@ void Processor::ChanneliseThread(int t_ID, Ipp32fc *y, int L,
 void Processor::getOptions(QVector<QString> &optlabels, QVector<int> &opts){
     optlabels.push_back("Channeliser Threads");
     opts.push_back(WOLA_NUMTHREADS);
+}
+
+void Processor::setOptions(QVector<int> opts){
+    qDebug() << "setting new options";
+    WOLA_NUMTHREADS = opts.at(0);
 }
 

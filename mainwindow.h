@@ -7,6 +7,7 @@
 #include <qwt_series_data.h>
 #include <qwt_plot_zoomer.h>
 #include "processor.h"
+#include "mydialog.h"
 #include <QFileDialog>
 #include <QDebug>
 #include <QFormLayout>
