@@ -28,7 +28,7 @@ void MainWindow::plotChannelisedTimeData(){
 
     ui->verticalLayout->addWidget(p);
 
-    p->setTitle("Channel Time");
+    p->setTitle("Channel vs Time");
 
     p->setAxisTitle(p->xBottom, "Time (s)");
     p->setAxisTitle(p->yLeft, "Channel Magnitude");
@@ -48,37 +48,32 @@ void MainWindow::plotChannelisedTimeData(){
 
 }
 
-void MainWindow::sampleQwtPlot(){
-    FILE *fp = fopen("D:\\SignalObserver\\data.bin","r");
-    if (fp!=NULL){
-        data.resize(4000000);
-        fread(&data[0], sizeof(double), 4000000, fp);
-        fclose(fp);
+void MainWindow::plotChannelisedFreqData(){
+    QwtPlot *p = new QwtPlot(this);
 
-        QwtPlot *p = new QwtPlot(this);
+    ui->verticalLayout->addWidget(p);
 
-        ui->centralWidget->layout()->addWidget(p);
+    p->setTitle("Channel Spectrum");
 
-        p->setTitle("eg title");
+    p->setAxisTitle(p->xBottom, "Frequency (Hz)");
+    p->setAxisTitle(p->yLeft, "Channel Power (dB)");
 
-        p->setAxisTitle(p->xBottom, "x");
-        p->setAxisTitle(p->yLeft, "x");
+    QwtPlotCurve *curve = new QwtPlotCurve("Channel vs Frequency");
 
-        QwtPlotCurve *curve = new QwtPlotCurve("FFT");
+    curve->setRawSamples(processor->chnl_f, processor->chnl_spectrum, processor->getNprimePts());
 
-        curve->setRawSamples(&data[0], &data[2000000], 2000000);
+    curve->attach(p);
 
-        curve->attach(p);
-
-        // make the zoomer
-        QwtPlotZoomer *zoomer = new QwtPlotZoomer(p->canvas());
-        zoomer->setZoomBase();
+    // make the zoomer
+    QwtPlotZoomer *zoomer = new QwtPlotZoomer(p->canvas());
+    zoomer->setZoomBase();
 
 
-        p->replot();
+    p->replot();
 
-    }
 }
+
+
 
 void MainWindow::on_startBtn_clicked()
 {
@@ -118,20 +113,21 @@ void MainWindow::on_ChanneliserFinished(){
 //    chnl_t = ippsMalloc_64f_L(processor->getNprimePts());
 //    chnl_abs = ippsMalloc_64f_L(processor->getNprimePts());
 
-    connect(processor, SIGNAL(ChannelTimeDataFinished()), this, SLOT(on_ChannelTimeDataFinished()));
-    std::thread t(&Processor::makeChannelTimeData, processor);
+    connect(processor, SIGNAL(ChannelTimeFreqDataFinished()), this, SLOT(on_ChannelTimeFreqDataFinished()));
+    std::thread t(&Processor::makeChannelTimeFreqData, processor);
     t.detach();
 }
 
-void MainWindow::on_ChannelTimeDataFinished(){
-    qDebug()<<"picked up channel time data finished";
+void MainWindow::on_ChannelTimeFreqDataFinished(){
+    qDebug()<<"picked up channel timefreq data finished";
 
     // let's check some data
     for (int i = 0; i < 10; i++){
-        qDebug() << processor->chnl_t[i] << ", " << processor->chnl_abs[i];
+        qDebug() << processor->chnl_f[i] << ", " << processor->chnl_spectrum[i];
     }
 
     plotChannelisedTimeData();
+    plotChannelisedFreqData();
 }
 
 
@@ -176,3 +172,51 @@ void MainWindow::on_actionOptions_triggered()
 }
 
 
+
+void MainWindow::on_preambleFileSelectBtn_clicked()
+{
+    QString filename = QFileDialog::getOpenFileName(this,
+        tr("Open Raw Files"), "D:\\SignalObserver", tr("Binary Files (*.bin *.dat)"));
+
+    // clear the list
+    ui->preambleFileEdit->clear();
+
+    // append to the list
+    ui->preambleFileEdit->setText(filename);
+}
+
+
+
+
+
+void MainWindow::sampleQwtPlot(){
+    FILE *fp = fopen("D:\\SignalObserver\\data.bin","r");
+    if (fp!=NULL){
+        data.resize(4000000);
+        fread(&data[0], sizeof(double), 4000000, fp);
+        fclose(fp);
+
+        QwtPlot *p = new QwtPlot(this);
+
+        ui->centralWidget->layout()->addWidget(p);
+
+        p->setTitle("eg title");
+
+        p->setAxisTitle(p->xBottom, "x");
+        p->setAxisTitle(p->yLeft, "x");
+
+        QwtPlotCurve *curve = new QwtPlotCurve("FFT");
+
+        curve->setRawSamples(&data[0], &data[2000000], 2000000);
+
+        curve->attach(p);
+
+        // make the zoomer
+        QwtPlotZoomer *zoomer = new QwtPlotZoomer(p->canvas());
+        zoomer->setZoomBase();
+
+
+        p->replot();
+
+    }
+}

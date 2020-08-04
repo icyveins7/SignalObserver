@@ -45,7 +45,8 @@ public:
     int getNprimePts(){return nprimePts;}
 
     // data / plot funcs
-    void makeChannelTimeData();
+    void makeChannelTimeFreqData();
+
 
     // options extraction
     void getOptions(QVector<QString> &optlabels, QVector<int> &opts);
@@ -59,8 +60,11 @@ public:
     Ipp32fc *out; // the channelised data
 
     // plot data
+    Ipp32fc *chnl;
     Ipp64f *chnl_t;
     Ipp64f *chnl_abs;
+    Ipp64f *chnl_f;
+    Ipp64f *chnl_spectrum;
 
 public slots:
     // options setting
@@ -68,7 +72,7 @@ public slots:
 
 signals:
     void ChanneliserFinished();
-    void ChannelTimeDataFinished();
+    void ChannelTimeFreqDataFinished();
 
 
 private:

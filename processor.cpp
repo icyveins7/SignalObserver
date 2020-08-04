@@ -26,8 +26,11 @@ Processor::Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx)
     f_tap = nullptr;
     out = nullptr;
 
+    chnl = nullptr;
     chnl_t = nullptr;
     chnl_abs = nullptr;
+    chnl_f = nullptr;
+    chnl_spectrum = nullptr;
 
     // print?
     printf("Processor initialized successfully.\n");
@@ -42,40 +45,79 @@ Processor::~Processor(){
     ippsFree(f_tap);
     ippsFree(out);
 
+    ippsFree(chnl_t);
+    ippsFree(chnl_abs);
+    ippsFree(chnl_f);
+    ippsFree(chnl_spectrum);
+
     // print?
     printf("Processor destroyed successfully.\n");
 }
 
-void Processor::makeChannelTimeData(){
+void Processor::makeChannelTimeFreqData(){
     qDebug() << "Entered get channel time data";
 
     // re allocate the arrays
+    ippsFree(chnl);
     ippsFree(chnl_t);
     ippsFree(chnl_abs);
+    ippsFree(chnl_f);
+    ippsFree(chnl_spectrum);
+    chnl = ippsMalloc_32fc_L(nprimePts);
     chnl_t = ippsMalloc_64f_L(nprimePts);
     chnl_abs = ippsMalloc_64f_L(nprimePts);
+    chnl_f = ippsMalloc_64f_L(nprimePts);
+    chnl_spectrum = ippsMalloc_64f_L(nprimePts);
 
 //    qDebug() << "in processor, resized to " << t.size() << " and " << x.size();
 
     // then downsample to get the correct one
-    Ipp32fc *ds = ippsMalloc_32fc_L(nprimePts);
     Ipp32f *m = ippsMalloc_32f_L(nprimePts);
-    ippsSampleDown_32fc(out, nprimePts * N, ds, &nprimePts, N, &chnlIdx); // extract the channel
-    ippsMagnitude_32fc(ds, m, nprimePts); // get the magnitude
+    ippsSampleDown_32fc(out, nprimePts * N, chnl, &nprimePts, N, &chnlIdx); // extract the channel
+    ippsMagnitude_32fc(chnl, m, nprimePts); // get the magnitude
     ippsConvert_32f64f(m, &chnl_abs[0], nprimePts); // convert to double
 
     // write values for t
     ippsVectorSlope_64f(&chnl_t[0], nprimePts, 0, 1.0/chnBW);
 
-    // freeing
-    ippsFree(ds);
-    ippsFree(m);
+    // fft to get the spectrum
+    // ===== IPP DFT Allocations =====
+    int sizeSpec = 0, sizeInit = 0, sizeBuf = 0;
+    ippsDFTGetSize_C_32fc(nprimePts, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &sizeSpec, &sizeInit, &sizeBuf); // this just fills the 3 integers
+    /* memory allocation */
+    IppsDFTSpec_C_32fc *pDFTSpec = (IppsDFTSpec_C_32fc*)ippMalloc(sizeSpec);
+    Ipp8u *pDFTBuffer = (Ipp8u*)ippMalloc(sizeBuf);
+    Ipp8u *pDFTMemInit = (Ipp8u*)ippMalloc(sizeInit);
+    Ipp32fc *chnl_fft = ippsMalloc_32fc_L(nprimePts);
+    Ipp32f *chnl_fft_abslog = ippsMalloc_32f_L(nprimePts);
+    ippsDFTInit_C_32fc(nprimePts, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone,  pDFTSpec, pDFTMemInit);
+    ippsDFTFwd_CToC_32fc(chnl, chnl_fft, pDFTSpec, pDFTBuffer); // run it
+    ippsPowerSpectr_32fc(chnl_fft, m, nprimePts); // can reuse the m vector
+    ippsLog10_32f_A24(m, chnl_fft_abslog, nprimePts); // convert to log
+    ippsMulC_32f_I(10.0f, chnl_fft_abslog, nprimePts); // x 10
 
-    for (int i = 0; i < 10; i++){
-        qDebug() << chnl_t[i] << ", " << chnl_abs[i];
+//    ippsConvert_32f64f(m, chnl_spectrum, nprimePts); // convert to 64f in the holding array
+    ippsConvert_32f64f(chnl_fft_abslog, chnl_spectrum, nprimePts); // convert to 64f in the holding array
+
+    // write values for f
+    ippsVectorSlope_64f(&chnl_f[0], nprimePts, 0, (double)chnBW/(double)nprimePts);
+    for (int i = 0; i < nprimePts; i++){
+        if (chnl_f[i] >= chnBW/2){
+            chnl_f[i] = chnl_f[i] - chnBW;
+        }
     }
 
-    emit(ChannelTimeDataFinished());
+
+    // freeing
+    ippsFree(m);
+    ippsFree(chnl_fft);
+    ippsFree(chnl_fft_abslog);
+
+    ippFree(pDFTSpec);
+    ippFree(pDFTBuffer);
+    ippFree(pDFTMemInit);
+
+    emit(ChannelTimeFreqDataFinished());
 }
 
 int Processor::LoadRawFiles_int16(QStringList filepaths){

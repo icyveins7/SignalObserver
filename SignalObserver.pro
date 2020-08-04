@@ -49,7 +49,7 @@ win32: LIBS += -LD:/Qwt-6.1.5/lib/ -lqwt
 INCLUDEPATH += D:/Qwt-6.1.5/include
 DEPENDPATH += D:/Qwt-6.1.5/include
 
-win32: LIBS += -LG:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/lib/intel64_win/ -lippcore -lipps
+win32: LIBS += -LG:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/lib/intel64_win/ -lippcore -lipps -lippvm
 
 INCLUDEPATH += G:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/include
 DEPENDPATH += G:/IntelSWTools/compilers_and_libraries_2020.1.216/windows/ipp/include

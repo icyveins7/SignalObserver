@@ -28,6 +28,7 @@ public:
     void sampleQwtPlot();
 
     void plotChannelisedTimeData();
+    void plotChannelisedFreqData();
 
 private slots:
     void on_startBtn_clicked();
@@ -38,7 +39,9 @@ private slots:
 
     // all the processor waiting slots
     void on_ChanneliserFinished();
-    void on_ChannelTimeDataFinished();
+    void on_ChannelTimeFreqDataFinished();
+
+    void on_preambleFileSelectBtn_clicked();
 
 private:
     Ui::MainWindow *ui;
