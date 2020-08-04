@@ -41,8 +41,26 @@ public:
                          Ipp8u *pDFTBuffer, IppsDFTSpec_C_32fc *pDFTSpec,
                          Ipp32fc *out, int NUM_THREADS);
 
+    // parameter extraction
+    int getNprimePts(){return nprimePts;}
+
+    // data / plot funcs
+    void makeChannelTimeData();
+
     // options extraction
     void getOptions(QVector<QString> &optlabels, QVector<int> &opts);
+
+
+    // array data
+    Ipp16sc *rawdata;
+    Ipp32fc *y; // converted from raw
+
+    Ipp32f *f_tap;
+    Ipp32fc *out; // the channelised data
+
+    // plot data
+    Ipp64f *chnl_t;
+    Ipp64f *chnl_abs;
 
 public slots:
     // options setting
@@ -50,6 +68,7 @@ public slots:
 
 signals:
     void ChanneliserFinished();
+    void ChannelTimeDataFinished();
 
 
 private:
@@ -64,12 +83,7 @@ private:
     int siglen;
     int nprimePts;
 
-    // array data
-    Ipp16sc *rawdata;
-    Ipp32fc *y;
 
-    Ipp32f *f_tap;
-    Ipp32fc *out;
 
     // options
     int WOLA_NUMTHREADS;

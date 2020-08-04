@@ -7,7 +7,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    sampleQwtPlot();
+    // sample plot
+//    sampleQwtPlot();
 
     // initialise to null?
     processor = nullptr;
@@ -20,6 +21,31 @@ MainWindow::~MainWindow()
 //    delete processor;
 
     delete ui;
+}
+
+void MainWindow::plotChannelisedTimeData(){
+    QwtPlot *p = new QwtPlot(this);
+
+    ui->verticalLayout->addWidget(p);
+
+    p->setTitle("Channel Time");
+
+    p->setAxisTitle(p->xBottom, "Time (s)");
+    p->setAxisTitle(p->yLeft, "Channel Magnitude");
+
+    QwtPlotCurve *curve = new QwtPlotCurve("Channel vs Time");
+
+    curve->setRawSamples(processor->chnl_t, processor->chnl_abs, processor->getNprimePts());
+
+    curve->attach(p);
+
+    // make the zoomer
+    QwtPlotZoomer *zoomer = new QwtPlotZoomer(p->canvas());
+    zoomer->setZoomBase();
+
+
+    p->replot();
+
 }
 
 void MainWindow::sampleQwtPlot(){
@@ -85,7 +111,30 @@ void MainWindow::on_startBtn_clicked()
 
 void MainWindow::on_ChanneliserFinished(){
     qDebug()<<"picked up channeliser finishing";
+
+//    // allocate memory for array first
+//    ippsFree(chnl_t);
+//    ippsFree(chnl_abs);
+//    chnl_t = ippsMalloc_64f_L(processor->getNprimePts());
+//    chnl_abs = ippsMalloc_64f_L(processor->getNprimePts());
+
+    connect(processor, SIGNAL(ChannelTimeDataFinished()), this, SLOT(on_ChannelTimeDataFinished()));
+    std::thread t(&Processor::makeChannelTimeData, processor);
+    t.detach();
 }
+
+void MainWindow::on_ChannelTimeDataFinished(){
+    qDebug()<<"picked up channel time data finished";
+
+    // let's check some data
+    for (int i = 0; i < 10; i++){
+        qDebug() << processor->chnl_t[i] << ", " << processor->chnl_abs[i];
+    }
+
+    plotChannelisedTimeData();
+}
+
+
 
 void MainWindow::on_selectFilesBtn_clicked()
 {

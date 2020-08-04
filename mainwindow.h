@@ -27,14 +27,18 @@ public:
 
     void sampleQwtPlot();
 
+    void plotChannelisedTimeData();
+
 private slots:
     void on_startBtn_clicked();
 
     void on_selectFilesBtn_clicked();
 
-    void on_ChanneliserFinished();
-
     void on_actionOptions_triggered();
+
+    // all the processor waiting slots
+    void on_ChanneliserFinished();
+    void on_ChannelTimeDataFinished();
 
 private:
     Ui::MainWindow *ui;

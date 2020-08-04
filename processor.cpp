@@ -26,6 +26,9 @@ Processor::Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx)
     f_tap = nullptr;
     out = nullptr;
 
+    chnl_t = nullptr;
+    chnl_abs = nullptr;
+
     // print?
     printf("Processor initialized successfully.\n");
 }
@@ -41,6 +44,38 @@ Processor::~Processor(){
 
     // print?
     printf("Processor destroyed successfully.\n");
+}
+
+void Processor::makeChannelTimeData(){
+    qDebug() << "Entered get channel time data";
+
+    // re allocate the arrays
+    ippsFree(chnl_t);
+    ippsFree(chnl_abs);
+    chnl_t = ippsMalloc_64f_L(nprimePts);
+    chnl_abs = ippsMalloc_64f_L(nprimePts);
+
+//    qDebug() << "in processor, resized to " << t.size() << " and " << x.size();
+
+    // then downsample to get the correct one
+    Ipp32fc *ds = ippsMalloc_32fc_L(nprimePts);
+    Ipp32f *m = ippsMalloc_32f_L(nprimePts);
+    ippsSampleDown_32fc(out, nprimePts * N, ds, &nprimePts, N, &chnlIdx); // extract the channel
+    ippsMagnitude_32fc(ds, m, nprimePts); // get the magnitude
+    ippsConvert_32f64f(m, &chnl_abs[0], nprimePts); // convert to double
+
+    // write values for t
+    ippsVectorSlope_64f(&chnl_t[0], nprimePts, 0, 1.0/chnBW);
+
+    // freeing
+    ippsFree(ds);
+    ippsFree(m);
+
+    for (int i = 0; i < 10; i++){
+        qDebug() << chnl_t[i] << ", " << chnl_abs[i];
+    }
+
+    emit(ChannelTimeDataFinished());
 }
 
 int Processor::LoadRawFiles_int16(QStringList filepaths){
