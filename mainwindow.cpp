@@ -11,6 +11,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     // initialise to null?
     processor = nullptr;
+
 }
 
 MainWindow::~MainWindow()
@@ -76,8 +77,14 @@ void MainWindow::on_startBtn_clicked()
     int retcode = processor->LoadRawFiles_int16(filepaths);
     qDebug() << retcode;
 
-    // run the channeliser
-    processor->ChanneliseStart();
+    // run the channeliser and detach thread so we dont freeze
+    connect(processor, SIGNAL(ChanneliserFinished()), this, SLOT(on_ChanneliserFinished()));
+    std::thread t(&Processor::ChanneliseStart, processor);
+    t.detach();
+}
+
+void MainWindow::on_ChanneliserFinished(){
+    qDebug()<<"picked up channeliser finishing";
 }
 
 void MainWindow::on_selectFilesBtn_clicked()
@@ -92,3 +99,43 @@ void MainWindow::on_selectFilesBtn_clicked()
     // append to the list
     ui->filesList->addItems(filenames);
 }
+
+void MainWindow::on_actionOptions_triggered()
+{
+    qDebug()<<"in options";
+
+    QDialog *d = new QDialog();
+    QFormLayout *layout = new QFormLayout();
+
+
+    QDialogButtonBox *b = new QDialogButtonBox(QDialogButtonBox::Ok|QDialogButtonBox::Cancel, d);
+
+//    connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+//    connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+
+    QVector<QString> curroptlabels;
+    QVector<int> curropts;
+
+
+    // populate current options
+    processor->getOptions(curroptlabels, curropts);
+
+    qDebug()<<curroptlabels;
+    qDebug()<<curropts;
+
+    for (int i = 0; i < curroptlabels.size(); i++){
+        QLineEdit *e = new QLineEdit(QString::number(curropts.at(i)));
+        layout->addRow(curroptlabels.at(i), e);
+    }
+
+
+    QVBoxLayout *mainlayout = new QVBoxLayout();
+    d->setLayout(mainlayout);
+    mainlayout->addLayout(layout);
+    mainlayout->addWidget(b);
+
+    d->exec();
+}
+
+

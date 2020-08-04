@@ -7,17 +7,22 @@
 #include <vector>
 #include <thread>
 #include <stdint.h>
+
 #include <QString>
 #include <QStringList>
 #include <QDebug>
+#include <QObject>
+#include <QVector>
 
 //#include <windows.h>
 //#include <process.h>
 
 #define NON_INT_DEC_ERR -1
 
-class Processor
+class Processor : public QObject
 {
+    Q_OBJECT
+
 public:
     Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx);
     ~Processor();
@@ -28,13 +33,19 @@ public:
 
     void makeFilterTaps();
 
-    int ChanneliseStart(int NUM_THREADS=4);
+    int ChanneliseStart();
 
     void ChanneliseThread(int t_ID, Ipp32fc *y, int L,
                          int N, int Dec, int nprimePts,
                          Ipp32f *f_tap,
                          Ipp8u *pDFTBuffer, IppsDFTSpec_C_32fc *pDFTSpec,
                          Ipp32fc *out, int NUM_THREADS);
+
+    // options extraction
+    void getOptions(QVector<QString> &optlabels, QVector<int> &opts);
+
+signals:
+    void ChanneliserFinished();
 
 
 private:
@@ -55,6 +66,9 @@ private:
 
     Ipp32f *f_tap;
     Ipp32fc *out;
+
+    // options
+    int WOLA_NUMTHREADS;
 
 };
 

@@ -17,6 +17,9 @@ Processor::Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx)
     siglen = 0;
     N = Dec * 2; // hard coded overlaps for now
 
+    // initialise options
+    WOLA_NUMTHREADS = 4;
+
     // initialise pointers to null
     rawdata = nullptr;
     y = nullptr;
@@ -119,8 +122,10 @@ void Processor::makeFilterTaps(){
     qDebug() << "Init'ed f_tap";
 }
 
-int Processor::ChanneliseStart(int NUM_THREADS){
+int Processor::ChanneliseStart(){
     qDebug()<<"Entered channeliser";
+
+    int NUM_THREADS = WOLA_NUMTHREADS;
 
     // make the filter taps
     makeFilterTaps();
@@ -172,7 +177,7 @@ int Processor::ChanneliseStart(int NUM_THREADS){
 
     // check some data?
     for (int c = 0; c < 10; c++){
-        printf("%f, %f\n", out[c].re, out[c].im);
+        printf("%f, %f\n", out[c*N].re, out[c*N].im);
     }
 
     for (int c = 0; c < 10; c++){
@@ -188,6 +193,8 @@ int Processor::ChanneliseStart(int NUM_THREADS){
     ippFree(pDFTSpec);
     ippFree(pDFTBuffer);
     ippFree(pDFTMemInit);
+
+    emit(ChanneliserFinished());
 
     return 0;
 }
@@ -234,4 +241,9 @@ void Processor::ChanneliseThread(int t_ID, Ipp32fc *y, int L,
     ippsFree(dft_out);
 }
 
+
+void Processor::getOptions(QVector<QString> &optlabels, QVector<int> &opts){
+    optlabels.push_back("Channeliser Threads");
+    opts.push_back(WOLA_NUMTHREADS);
+}
 

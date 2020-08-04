@@ -9,6 +9,8 @@
 #include "processor.h"
 #include <QFileDialog>
 #include <QDebug>
+#include <QFormLayout>
+#include <QDialogButtonBox>
 
 namespace Ui {
 class MainWindow;
@@ -28,6 +30,10 @@ private slots:
     void on_startBtn_clicked();
 
     void on_selectFilesBtn_clicked();
+
+    void on_ChanneliserFinished();
+
+    void on_actionOptions_triggered();
 
 private:
     Ui::MainWindow *ui;
