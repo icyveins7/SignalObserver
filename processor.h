@@ -31,6 +31,8 @@ public:
 
     int LoadRawFiles_int16(QStringList filepaths);
 
+    int LoadCutout_32fc(QString filepath);
+
     void makeFilterTaps();
 
     int ChanneliseStart();
@@ -41,11 +43,20 @@ public:
                          Ipp8u *pDFTBuffer, IppsDFTSpec_C_32fc *pDFTSpec,
                          Ipp32fc *out, int NUM_THREADS);
 
+    int XcorrStart(QString cutoutfilepath, bool alreadyConj);
+
+    void XcorrThread(int t_ID, Ipp32fc *cutout, Ipp32fc *y,
+                     Ipp64f *y_absSq, Ipp64f cutout_pwr, int *shifts,
+                     int shiftPts, int fftlen,
+                     Ipp8u *pBuffer, IppsDFTSpec_C_32fc *pSpec,
+                     Ipp64f *productpeaks, int *freqlist_inds, int NUM_THREADS);
+
     // parameter extraction
     int getNprimePts(){return nprimePts;}
 
     // data / plot funcs
     void makeChannelTimeFreqData();
+    void makeXcorrData();
 
 
     // options extraction
@@ -59,10 +70,19 @@ public:
     Ipp32f *f_tap;
     Ipp32fc *out; // the channelised data
 
+    Ipp32fc *cutout;
+    int cutoutlen;
+    Ipp64f cutout_pwr;
+    int *shifts;
+    int shiftPts;
+    Ipp64f *productpeaks;
+    int *freqlist_inds;
+//    Ipp64f *freqlist;
+
     // plot data
     Ipp32fc *chnl;
     Ipp64f *chnl_t;
-    Ipp64f *chnl_abs;
+    Ipp64f *chnl_absSq;
     Ipp64f *chnl_f;
     Ipp64f *chnl_spectrum;
 
@@ -73,6 +93,7 @@ public slots:
 signals:
     void ChanneliserFinished();
     void ChannelTimeFreqDataFinished();
+    void XcorrFinished();
 
 
 private:
@@ -91,6 +112,7 @@ private:
 
     // options
     int WOLA_NUMTHREADS;
+    int XCORR_NUMTHREADS;
 
 };
 

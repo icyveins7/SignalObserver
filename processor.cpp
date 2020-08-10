@@ -19,6 +19,7 @@ Processor::Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx)
 
     // initialise options
     WOLA_NUMTHREADS = 4;
+    XCORR_NUMTHREADS = 4;
 
     // initialise pointers to null
     rawdata = nullptr;
@@ -26,9 +27,13 @@ Processor::Processor(int in_fs, int in_chnBW, int in_numTaps, int in_chnlIdx)
     f_tap = nullptr;
     out = nullptr;
 
+    cutout = nullptr;
+    productpeaks = nullptr;
+    freqlist_inds = nullptr;
+
     chnl = nullptr;
     chnl_t = nullptr;
-    chnl_abs = nullptr;
+    chnl_absSq = nullptr;
     chnl_f = nullptr;
     chnl_spectrum = nullptr;
 
@@ -45,8 +50,13 @@ Processor::~Processor(){
     ippsFree(f_tap);
     ippsFree(out);
 
+    ippsFree(cutout);
+    ippsFree(shifts);
+    ippsFree(productpeaks);
+    ippsFree(freqlist_inds);
+
     ippsFree(chnl_t);
-    ippsFree(chnl_abs);
+    ippsFree(chnl_absSq);
     ippsFree(chnl_f);
     ippsFree(chnl_spectrum);
 
@@ -60,12 +70,12 @@ void Processor::makeChannelTimeFreqData(){
     // re allocate the arrays
     ippsFree(chnl);
     ippsFree(chnl_t);
-    ippsFree(chnl_abs);
+    ippsFree(chnl_absSq);
     ippsFree(chnl_f);
     ippsFree(chnl_spectrum);
     chnl = ippsMalloc_32fc_L(nprimePts);
     chnl_t = ippsMalloc_64f_L(nprimePts);
-    chnl_abs = ippsMalloc_64f_L(nprimePts);
+    chnl_absSq = ippsMalloc_64f_L(nprimePts);
     chnl_f = ippsMalloc_64f_L(nprimePts);
     chnl_spectrum = ippsMalloc_64f_L(nprimePts);
 
@@ -74,8 +84,8 @@ void Processor::makeChannelTimeFreqData(){
     // then downsample to get the correct one
     Ipp32f *m = ippsMalloc_32f_L(nprimePts);
     ippsSampleDown_32fc(out, nprimePts * N, chnl, &nprimePts, N, &chnlIdx); // extract the channel
-    ippsMagnitude_32fc(chnl, m, nprimePts); // get the magnitude
-    ippsConvert_32f64f(m, &chnl_abs[0], nprimePts); // convert to double
+    ippsPowerSpectr_32fc(chnl, m, nprimePts); // get the magnitude
+    ippsConvert_32f64f(m, &chnl_absSq[0], nprimePts); // convert to double
 
     // write values for t
     ippsVectorSlope_64f(&chnl_t[0], nprimePts, 0, 1.0/chnBW);
@@ -252,14 +262,6 @@ int Processor::ChanneliseStart(){
 
     qDebug()<<"Wola threads finished\n";
 
-//    // check some data?
-//    for (int c = 0; c < 10; c++){
-//        printf("%f, %f\n", out[c*N].re, out[c*N].im);
-//    }
-
-//    for (int c = 0; c < 10; c++){
-//        printf("%f, %f\n", out[c*N + chnlIdx].re, out[c*N + chnlIdx].im);
-//    }
 
     // === FINAL CLEANUP ===
     for (t=0; t<NUM_THREADS; t++){
@@ -316,6 +318,161 @@ void Processor::ChanneliseThread(int t_ID, Ipp32fc *y, int L,
 
     ippsFree(dft_in);
     ippsFree(dft_out);
+}
+
+int Processor::LoadCutout_32fc(QString filepath){
+    // start opening files
+    FILE *fp;
+
+    fp = fopen(filepath.toUtf8().constData(), "rb");
+    if (fp==NULL){
+        return 1;
+    }
+    else{
+        // get size first
+        fseek(fp, 0, SEEK_END);
+        int len = ftell(fp);
+
+        // malloc for the array
+        ippsFree(cutout);
+        cutoutlen = len/sizeof(Ipp32fc);
+        cutout = ippsMalloc_32fc_L(cutoutlen);
+
+        fseek(fp, 0, SEEK_SET);
+        fread(cutout,sizeof(Ipp32fc),cutoutlen,fp);
+
+        fclose(fp);
+
+        // calculate the cutout_pwr
+        ippsNorm_L2_32fc64f(cutout, cutoutlen, &cutout_pwr);
+        cutout_pwr = cutout_pwr * cutout_pwr;
+
+        return 0;
+    }
+
+}
+
+int Processor::XcorrStart(QString cutoutfilepath, bool alreadyConj){
+    qDebug() << "Entered xcorr";
+    int NUM_THREADS = XCORR_NUMTHREADS;
+    int t;
+    std::vector<std::thread> threadPool(NUM_THREADS);
+
+    // load cutout first
+    if (LoadCutout_32fc(cutoutfilepath) != 0){
+        qDebug() << "error loading cutout";
+        return -1;
+    };
+
+    if (!alreadyConj){ // then we conjugate it
+        ippsConj_32fc_I(cutout, cutoutlen);
+    }
+
+//    printf("cutout:\n");
+//    for (int i = 0; i < 5; i++){
+//        printf("%f, %f \n", cutout[i].re, cutout[i].im);
+//    }
+
+
+    // permanently allocate for output first
+    shiftPts = nprimePts - cutoutlen + 1;
+    shifts = ippsMalloc_32s_L(shiftPts);
+    ippsVectorSlope_32s(shifts, shiftPts, 0, 1.0);
+
+    productpeaks = ippsMalloc_64f_L(shiftPts);
+    freqlist_inds = ippsMalloc_32s_L(shiftPts);
+
+
+    // ===== IPP DFT Allocations =====
+    int sizeSpec = 0, sizeInit = 0, sizeBuf = 0;
+    ippsDFTGetSize_C_32fc(cutoutlen, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone, &sizeSpec, &sizeInit, &sizeBuf); // this just fills the 3 integers
+    /* memory allocation */
+    IppsDFTSpec_C_32fc **pDFTSpec = (IppsDFTSpec_C_32fc**)ippMalloc(sizeof(IppsDFTSpec_C_32fc*)*NUM_THREADS);
+    Ipp8u **pDFTBuffer = (Ipp8u**)ippMalloc(sizeof(Ipp8u*)*NUM_THREADS);
+    Ipp8u **pDFTMemInit = (Ipp8u**)ippMalloc(sizeof(Ipp8u*)*NUM_THREADS);
+    for (t = 0; t<NUM_THREADS; t++){ // make one for each thread
+        pDFTSpec[t] = (IppsDFTSpec_C_32fc*)ippMalloc(sizeSpec); // this is analogue of the fftw plan
+        pDFTBuffer[t] = (Ipp8u*)ippMalloc(sizeBuf);
+        pDFTMemInit[t] = (Ipp8u*)ippMalloc(sizeInit);
+        ippsDFTInit_C_32fc(cutoutlen, IPP_FFT_NODIV_BY_ANY, ippAlgHintNone,  pDFTSpec[t], pDFTMemInit[t]); // kinda like making the fftw plan?
+    }
+
+
+    // use c++ threads instead?
+    qDebug()<<"Starting xcorr threads\n";
+
+    for (t = 0; t < NUM_THREADS; t++){
+
+        threadPool[t] = std::thread(&Processor::XcorrThread, this,
+                                    t, cutout, chnl,
+                                    chnl_absSq, cutout_pwr, shifts,
+                                    shiftPts, cutoutlen,
+                                    pDFTBuffer[t], pDFTSpec[t],
+                                    productpeaks, freqlist_inds, NUM_THREADS);
+    }
+
+    for (t = 0; t< NUM_THREADS; t++){
+        threadPool[t].join(); // wait for them to finish
+    }
+
+    // === FINAL CLEANUP ===
+    for (t=0; t<NUM_THREADS; t++){
+        ippFree(pDFTSpec[t]);
+        ippFree(pDFTBuffer[t]);
+        ippFree(pDFTMemInit[t]);
+    }
+    ippFree(pDFTSpec);
+    ippFree(pDFTBuffer);
+    ippFree(pDFTMemInit);
+
+    emit(XcorrFinished());
+
+    return 0;
+}
+
+void Processor::XcorrThread(int t_ID, Ipp32fc *cutout, Ipp32fc *y,
+                            Ipp64f *y_absSq, Ipp64f cutout_pwr, int *shifts,
+                            int shiftPts, int fftlen,
+                            Ipp8u *pBuffer, IppsDFTSpec_C_32fc *pSpec,
+                            Ipp64f *productpeaks, int *freqlist_inds, int NUM_THREADS){
+
+    // computations
+    int i, curr_shift;
+    Ipp64f y_pwr;
+    Ipp32fc *dft_in = (Ipp32fc*)ippsMalloc_32fc_L(fftlen);
+    Ipp32fc *dft_out = (Ipp32fc*)ippsMalloc_32fc_L(fftlen);
+    Ipp32f *magnSq = (Ipp32f*)ippsMalloc_32f_L(fftlen);
+    Ipp32f maxval;
+    int maxind;
+
+    // pick point based on thread number
+    for (i = t_ID; i<shiftPts; i=i+NUM_THREADS){
+        curr_shift = shifts[i];
+
+        if (curr_shift == 100){
+            for (int a = 0; a < 5; a++){
+                printf("%f, %f \n", y[curr_shift+a].re, y[curr_shift+a].im);
+            }
+
+        }
+
+        ippsSum_64f(&y_absSq[curr_shift], fftlen, &y_pwr);
+
+        ippsMul_32fc(cutout,&y[curr_shift], dft_in, fftlen);
+
+        ippsDFTFwd_CToC_32fc(dft_in, dft_out, pSpec, pBuffer);
+
+        ippsPowerSpectr_32fc(dft_out, magnSq, fftlen);
+
+        ippsMaxIndx_32f(magnSq, fftlen, &maxval, &maxind);
+
+        productpeaks[i] = (Ipp64f)maxval/cutout_pwr/y_pwr;
+        freqlist_inds[i] = maxind;
+    }
+
+    ippsFree(dft_in); ippsFree(dft_out);
+    ippsFree(magnSq);
+
 }
 
 

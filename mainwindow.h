@@ -29,6 +29,7 @@ public:
 
     void plotChannelisedTimeData();
     void plotChannelisedFreqData();
+    void plotXcorrData();
 
 private slots:
     void on_startBtn_clicked();
@@ -40,6 +41,7 @@ private slots:
     // all the processor waiting slots
     void on_ChanneliserFinished();
     void on_ChannelTimeFreqDataFinished();
+    void on_XcorrFinished();
 
     void on_preambleFileSelectBtn_clicked();
 

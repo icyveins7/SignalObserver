@@ -26,16 +26,16 @@ MainWindow::~MainWindow()
 void MainWindow::plotChannelisedTimeData(){
     QwtPlot *p = new QwtPlot(this);
 
-    ui->verticalLayout->addWidget(p);
+    ui->plotGrid->addWidget(p, 0,0);
 
     p->setTitle("Channel vs Time");
 
     p->setAxisTitle(p->xBottom, "Time (s)");
-    p->setAxisTitle(p->yLeft, "Channel Magnitude");
+    p->setAxisTitle(p->yLeft, "Channel Power (Abs Sq)");
 
     QwtPlotCurve *curve = new QwtPlotCurve("Channel vs Time");
 
-    curve->setRawSamples(processor->chnl_t, processor->chnl_abs, processor->getNprimePts());
+    curve->setRawSamples(processor->chnl_t, processor->chnl_absSq, processor->getNprimePts());
 
     curve->attach(p);
 
@@ -51,7 +51,7 @@ void MainWindow::plotChannelisedTimeData(){
 void MainWindow::plotChannelisedFreqData(){
     QwtPlot *p = new QwtPlot(this);
 
-    ui->verticalLayout->addWidget(p);
+    ui->plotGrid->addWidget(p, 1, 0);
 
     p->setTitle("Channel Spectrum");
 
@@ -61,6 +61,30 @@ void MainWindow::plotChannelisedFreqData(){
     QwtPlotCurve *curve = new QwtPlotCurve("Channel vs Frequency");
 
     curve->setRawSamples(processor->chnl_f, processor->chnl_spectrum, processor->getNprimePts());
+
+    curve->attach(p);
+
+    // make the zoomer
+    QwtPlotZoomer *zoomer = new QwtPlotZoomer(p->canvas());
+    zoomer->setZoomBase();
+
+
+    p->replot();
+}
+
+void MainWindow::plotXcorrData(){
+    QwtPlot *p = new QwtPlot(this);
+
+    ui->plotGrid->addWidget(p, 0, 1);
+
+    p->setTitle("Preamble XCorr Output");
+
+    p->setAxisTitle(p->xBottom, "Time (s)");
+    p->setAxisTitle(p->yLeft, "QF^2");
+
+    QwtPlotCurve *curve = new QwtPlotCurve("XCorr Output vs Time");
+
+    curve->setRawSamples(processor->chnl_t, processor->productpeaks, processor->shiftPts);
 
     curve->attach(p);
 
@@ -128,6 +152,18 @@ void MainWindow::on_ChannelTimeFreqDataFinished(){
 
     plotChannelisedTimeData();
     plotChannelisedFreqData();
+
+    // run the xcorr here for now?
+    connect(processor, SIGNAL(XcorrFinished()), this, SLOT(on_XcorrFinished()));
+    std::thread t(&Processor::XcorrStart, processor, ui->preambleFileEdit->text(), ui->alreadyConjCheckbox->isChecked());
+    t.detach();
+
+}
+
+void MainWindow::on_XcorrFinished(){
+    qDebug() << "picked up xcorr finished";
+
+    plotXcorrData();
 }
 
 
